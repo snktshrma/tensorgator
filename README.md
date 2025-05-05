@@ -51,7 +51,9 @@ pip install -e .
 
     import tensorgator as tg
     from tensorgator.prop_cuda import propagate_constellation_cuda
-
+    from numba import config
+    config.CUDA_ENABLE_PYNVJITLINK = 1 # Enable CUDA support on Google Colab
+    
     def main():
         np.random.seed(21)
         

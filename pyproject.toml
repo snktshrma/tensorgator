@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tensorgator"
-version = "0.1.0"
+version = "0.1.1"
 description = "CUDA-accelerated Satellite Propagation"
 authors = [
-  { name="ApoPeri", email="ApoPeri@gmail.com" }
+  { name="ApoPeri", email="ApoPeri@protonmail.com" }
 ]
 dependencies = [
   "numpy",

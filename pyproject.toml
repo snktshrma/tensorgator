@@ -15,5 +15,5 @@ dependencies = [
   "numba"
 ]
 requires-python = ">=3.7"
-readme = "../README.md"
-license = { file = "../LICENSE" }
+readme = "README.md"
+license = { file = "LICENSE" }

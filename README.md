@@ -45,72 +45,72 @@ pip install -e .
 
 ## Quick Start
 
-import numpy as np
-import time
-import matplotlib.pyplot as plt
+    import numpy as np
+    import time
+    import matplotlib.pyplot as plt
 
-import tensorgator as tg
-from tensorgator.prop_cuda import propagate_constellation_cuda
+    import tensorgator as tg
+    from tensorgator.prop_cuda import propagate_constellation_cuda
 
-def main():
-    np.random.seed(21)
-    
-    RE = tg.RE
-    
-    num_sats = 10
-    constellation = []
-    
-    for _ in range(num_sats):
-        altitude = np.random.uniform(300000, 2000000)
-        a = RE + altitude
-        e = 0.0
-        inc = np.radians(np.random.uniform(20, 98))
-        raan = np.radians(np.random.uniform(0, 360))
-        argp = np.radians(np.random.uniform(0, 360))
-        M0 = np.radians(np.random.uniform(0, 360))
+    def main():
+        np.random.seed(21)
         
-        constellation.append([a, e, inc, raan, argp, M0])
-    
-    constellation = np.array(constellation)
-    
-    time_step = 60 # seconds
-    num_steps = 1440
-    times = np.arange(0, num_steps * time_step, time_step)
-    
-    print(f"Propagating {num_sats} satellites over {num_steps} time steps...")
-    start_time = time.time()
-    
-    positions = propagate_constellation_cuda(constellation, times, return_frame='ecef')
-    
-    prop_time = time.time() - start_time
-    print(f"Propagation completed in {prop_time:.2f} seconds")
-    
-    # Simple 2D plot
-    plt.figure(figsize=(8, 8))
-    
-    # Draw Earth
-    earth_radius_scaled = 1.0
-    scale_factor = earth_radius_scaled / RE
-    earth_circle = plt.Circle((0, 0), earth_radius_scaled, color='blue', alpha=0.3)
-    plt.gca().add_patch(earth_circle)
-    
-    # Plot orbit trails for 10 satellites
-    for i in range(0, min(num_sats, 100), 1):
-        x = positions[i, :, 0] * scale_factor
-        y = positions[i, :, 1] * scale_factor
-        plt.plot(x, y, linewidth=0.8, alpha=0.7)
-    
-    plt.axis('equal')
-    max_alt = np.max(constellation[:, 0]) * scale_factor
-    plt.xlim(-max_alt, max_alt)
-    plt.ylim(-max_alt, max_alt)
-    plt.grid(True, linestyle='--', alpha=0.3)
-    plt.title('Satellite Orbits')
-    plt.savefig('orbits.png')
-    plt.show()
+        RE = tg.RE
+        
+        num_sats = 10
+        constellation = []
+        
+        for _ in range(num_sats):
+            altitude = np.random.uniform(300000, 2000000)
+            a = RE + altitude
+            e = 0.0
+            inc = np.radians(np.random.uniform(20, 98))
+            raan = np.radians(np.random.uniform(0, 360))
+            argp = np.radians(np.random.uniform(0, 360))
+            M0 = np.radians(np.random.uniform(0, 360))
+            
+            constellation.append([a, e, inc, raan, argp, M0])
+        
+        constellation = np.array(constellation)
+        
+        time_step = 60 # seconds
+        num_steps = 1440
+        times = np.arange(0, num_steps * time_step, time_step)
+        
+        print(f"Propagating {num_sats} satellites over {num_steps} time steps...")
+        start_time = time.time()
+        
+        positions = propagate_constellation_cuda(constellation, times, return_frame='ecef')
+        
+        prop_time = time.time() - start_time
+        print(f"Propagation completed in {prop_time:.2f} seconds")
+        
+        # Simple 2D plot
+        plt.figure(figsize=(8, 8))
+        
+        # Draw Earth
+        earth_radius_scaled = 1.0
+        scale_factor = earth_radius_scaled / RE
+        earth_circle = plt.Circle((0, 0), earth_radius_scaled, color='blue', alpha=0.3)
+        plt.gca().add_patch(earth_circle)
+        
+        # Plot orbit trails for 10 satellites
+        for i in range(0, min(num_sats, 100), 1):
+            x = positions[i, :, 0] * scale_factor
+            y = positions[i, :, 1] * scale_factor
+            plt.plot(x, y, linewidth=0.8, alpha=0.7)
+        
+        plt.axis('equal')
+        max_alt = np.max(constellation[:, 0]) * scale_factor
+        plt.xlim(-max_alt, max_alt)
+        plt.ylim(-max_alt, max_alt)
+        plt.grid(True, linestyle='--', alpha=0.3)
+        plt.title('Satellite Orbits')
+        plt.savefig('orbits.png')
+        plt.show()
 
-if __name__ == "__main__":
-    main()
+    if __name__ == "__main__":
+        main()
 
 ## Core Functions
 

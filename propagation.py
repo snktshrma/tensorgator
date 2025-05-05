@@ -66,18 +66,3 @@ def satellite_positions(times, constellation, backend='cpu', return_frame='ecef'
                                            epochs=epochs, input_type=input_type)
     else:
         raise ValueError(f"Unknown backend: {backend}")
-
-# Keep cart_to_lat_lon as before
-def cart_to_lat_lon(x, y, z):
-    """Convert ECEF to latitude and longitude (degrees)."""
-    r = np.sqrt(x**2 + y**2 + z**2)
-    lat = np.arcsin(z / r)
-    lon = np.arctan2(y, x)
-    return np.degrees(lat), np.degrees(lon)
-
-def cart_to_lat_lon(x, y, z):
-    """Convert ECEF to latitude and longitude (degrees)."""
-    r = np.sqrt(x**2 + y**2 + z**2)
-    lat = np.arcsin(z / r)
-    lon = np.arctan2(y, x)
-    return np.degrees(lat), np.degrees(lon)

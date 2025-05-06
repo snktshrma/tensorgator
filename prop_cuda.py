@@ -3,6 +3,7 @@ import math
 from numba import cuda
 from .constants import MU, J2, RE
 from .coord_conv import batch_eci_to_ecef, calculate_gmst_from_seconds
+from numba import config
 
 def propagate_constellation_cuda(satellite_elements, times, return_frame='ecef', epochs=None, input_type='kepler'):
     mu = MU
@@ -76,7 +77,8 @@ def calculate_position_device(mu, a, e, i, M, w, raan, j2, re, t):
     w_t = w + d_argper_dt * t
     M_t = M + (n0 + d_M_dt) * t
 
-    E = kepler_equation_device(M_t, e)
+    # Replace the original Kepler equation solver with the contour method
+    E = kepler_equation_contour_device(M_t, e)
     nu = 2 * math.atan2(math.sqrt(1 + e) * math.sin(E / 2), math.sqrt(1 - e) * math.cos(E / 2))
     r = a * (1 - e * math.cos(E))
 
@@ -96,16 +98,116 @@ def calculate_position_device(mu, a, e, i, M, w, raan, j2, re, t):
 
     return x, y, z
 
+#From https://github.com/oliverphilcox/Keplers-Goat-Herd/blob/main/keplers_goat_herd.py
 @cuda.jit(device=True, fastmath=True)
-def kepler_equation_device(M, e):
-    tol = 1e-10
-    max_iter = 10
-    E = M
-    for _ in range(max_iter):
-        E_old = E
-        f = E - e * math.sin(E) - M
-        f_prime = 1 - e * math.cos(E)
-        E = E - f / f_prime
-        if abs(E - E_old) < tol:
-            break
-    return E
+def kepler_equation_contour_device(M, e):
+    """
+    Solve Kepler's equation, E - e sin E = M, via the contour integration method
+    
+    Args:
+        M (float): Mean anomaly
+        e (float): Eccentricity
+        
+    Returns:
+        float: Eccentric anomaly E
+    """
+    # Use only 2 parameters to match the original function signature
+    ell = M
+    eccentricity = e
+    N_it = 10  # Set a default value for N_it
+    
+    # Normalize ell to [0, 2π] range
+    while ell < 0.0:
+        ell += 2.0 * math.pi
+    while ell > 2.0 * math.pi:
+        ell -= 2.0 * math.pi
+    
+    # Handle edge cases
+    if eccentricity < 1e-10:
+        return ell
+    
+    # Define contour radius
+    radius = eccentricity / 2.0
+    
+    # Define contour center
+    center = ell - eccentricity / 2.0
+    if ell < math.pi:
+        center += eccentricity
+        
+    # Compute sin and cos of center
+    sinC = math.sin(center)
+    cosC = math.cos(center)
+    
+    # Initialize output to center
+    output = center
+    
+    # Precompute e*sin(radius) and e*cos(radius)
+    esinRadius = eccentricity * math.sin(radius)
+    ecosRadius = eccentricity * math.cos(radius)
+    
+    # Initialize Fourier coefficients
+    ft_gx1 = 0.0
+    ft_gx2 = 0.0
+    
+    # j = 0 piece
+    zR = center + radius
+    tmpsin = sinC * ecosRadius + cosC * esinRadius
+    fxR = zR - tmpsin - ell
+    
+    # Add to arrays with factor of 1/2 since an edge
+    if abs(fxR) > 1e-14:  # Avoid division by zero
+        ft_gx2 += 0.5 / fxR
+        ft_gx1 += 0.5 / fxR
+    
+    # j = 1 to N_points pieces
+    N_points = N_it - 2
+    N_fft = (N_it - 1) * 2
+    
+    for j in range(N_points):
+        # Compute sampling points
+        freq = 2.0 * math.pi * (j + 1.0) / N_fft
+        exp2R = math.cos(freq)
+        exp2I = math.sin(freq)
+        
+        # Compute real and imaginary components
+        ecosR = eccentricity * math.cos(radius * exp2R)
+        esinR = eccentricity * math.sin(radius * exp2R)
+        exp4R = exp2R * exp2R - exp2I * exp2I
+        exp4I = 2.0 * exp2R * exp2I
+        coshI = math.cosh(radius * exp2I)
+        sinhI = math.sinh(radius * exp2I)
+        
+        # Compute z in real and imaginary parts
+        zR = center + radius * exp2R
+        zI = radius * exp2I
+        
+        # Compute components for f(z(x))
+        tmpsin = sinC * ecosR + cosC * esinR  # e sin(zR)
+        tmpcos = cosC * ecosR - sinC * esinR  # e cos(zR)
+        
+        fxR = zR - tmpsin * coshI - ell
+        fxI = zI - tmpcos * sinhI
+        
+        # Compute 1/f(z)
+        ftmp = fxR * fxR + fxI * fxI
+        if ftmp > 1e-14:  # Avoid division by zero
+            fxR = fxR / ftmp
+            fxI = fxI / ftmp
+            
+            ft_gx2 += exp4R * fxR + exp4I * fxI
+            ft_gx1 += exp2R * fxR + exp2I * fxI
+    
+    # j = N_it piece
+    zR = center - radius
+    tmpsin = sinC * ecosRadius - cosC * esinRadius
+    fxR = zR - tmpsin - ell
+    
+    if abs(fxR) > 1e-14:  # Avoid division by zero
+        ft_gx2 += 0.5 / fxR
+        ft_gx1 += -0.5 / fxR
+    
+    # Compute and return the solution E(ell,e)
+    if abs(ft_gx1) > 1e-14:  # Avoid division by zero
+        output += radius * ft_gx2 / ft_gx1
+        
+    return output

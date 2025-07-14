@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tensorgator"
+version = "0.1.2"
+description = "CUDA-accelerated Satellite Propagation"
+authors = [
+  { name="ApoPeri", email="ApogeePerigee@protonmail.com" }
+]
+dependencies = [
+  "numpy",
+  "matplotlib",
+  "numba"
+]
+requires-python = ">=3.7"
+readme = "README.md"
+license = { file = "LICENSE" }

@@ -151,37 +151,11 @@ Returns a boolean array indicating visibility.
 
 TensorGator includes several example applications:
 
-### Benchmark
+These can be uploaded to google colab or run on your own NVIDIA GPU
 
-Evaluates propagation performance with various constellation sizes and timesteps.
-
-```bash
-python -m tensorgator.examples.benchmark
-```
-
-### 3D Orbit Visualization
-
-Interactive 3D visualization of satellite orbits.
-
-```bash
-python -m tensorgator.examples.3d_orbit_visualization
-```
-
-### Coverage Map
-
-Generates global coverage maps for satellite constellations.
-
-```bash
-python -m tensorgator.examples.coverage_map
-```
-
-### Interactive Visibility
-
-Interactive tool for analyzing satellite visibility from ground points.
-
-```bash
-python -m tensorgator.examples.interactive_visibility
-```
+3d_orbit_animation_google_colab.ipynb
+benchmark_google_colab.ipynb
+coverage_map_google_colab.ipynb
 
 ## Validation
 

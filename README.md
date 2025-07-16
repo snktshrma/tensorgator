@@ -1,4 +1,5 @@
 # TensorGator
+Link: [https://apogeeperigee.substack.com/p/tensorgator]()
 
 TensorGator is a CUDA-accelerated satellite propagation library designed for massively parallel orbital mechanics calculations.
 
